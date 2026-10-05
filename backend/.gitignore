@@ -1,0 +1,16 @@
+# dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# environment files (keep the example)
+.env
+.env.*
+!.env.example
+
+# logs and coverage
+*.log
+coverage/
+
+# OS / editor
+.DS_Store
