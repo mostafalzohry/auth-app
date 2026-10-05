@@ -1,6 +1,9 @@
-import { INestApplication, Type } from '@nestjs/common';
+import { Type } from '@nestjs/common';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
+import { configureApp } from '../../src/app.setup';
+import { AUTH_COOKIE_SECURE } from '../../src/modules/auth/infrastructure/auth-cookie.adapter';
 import { USER_REPOSITORY } from '../../src/modules/users/domain/user-repository.port';
 import type { UserRepository } from '../../src/modules/users/domain/user-repository.port';
 import type {
@@ -9,6 +12,8 @@ import type {
   UserCredentials,
 } from '../../src/modules/users/domain/user.types';
 import { USER_MODEL } from '../../src/modules/users/infrastructure/user.schema';
+
+export const TEST_JWT_SECRET = 'test-only-jwt-secret-0123456789abcdef-xyz';
 
 export function snapshotEnv() {
   return { ...process.env };
@@ -24,6 +29,7 @@ export function restoreEnv(original: NodeJS.ProcessEnv) {
 export async function loadAppModule(): Promise<Type<unknown>> {
   process.env.NODE_ENV = 'test';
   process.env.MONGODB_URI = 'mongodb://localhost:27017/auth_app_test';
+  process.env.JWT_SECRET = TEST_JWT_SECRET;
   const { AppModule } = await import('../../src/app.module');
   return AppModule;
 }
@@ -39,10 +45,15 @@ export function createUserRepositoryDouble() {
   };
 }
 
+export interface TestAppOptions {
+  production?: boolean;
+}
+
 export async function createTestApp(
   AppModule: Type<unknown>,
   userRepository: UserRepository,
-): Promise<INestApplication> {
+  options: TestAppOptions = {},
+): Promise<NestExpressApplication> {
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],
   })
@@ -52,9 +63,12 @@ export async function createTestApp(
     .useValue({})
     .overrideProvider(USER_REPOSITORY)
     .useValue(userRepository)
+    .overrideProvider(AUTH_COOKIE_SECURE)
+    .useValue(options.production === true)
     .compile();
 
-  const app = moduleFixture.createNestApplication();
+  const app = moduleFixture.createNestApplication<NestExpressApplication>();
+  configureApp(app, { production: options.production });
   await app.init();
   return app;
 }

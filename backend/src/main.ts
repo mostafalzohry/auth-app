@@ -1,13 +1,16 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 import { SanitizedLogger } from './database/sanitized-logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new SanitizedLogger(),
   });
+  configureApp(app);
   const port = app.get(ConfigService).getOrThrow<number>('PORT');
   await app.listen(port);
 }

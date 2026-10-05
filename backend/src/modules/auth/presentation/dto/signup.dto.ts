@@ -6,21 +6,16 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { normalizeEmail } from '../../../users/domain/normalize-email';
-
-const trim = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() : value;
-const normalize = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? normalizeEmail(value) : value;
+import { normalizeEmailInput, trimString } from './transforms';
 
 export class SignupDto {
-  @Transform(trim)
+  @Transform(trimString)
   @IsString()
   @MinLength(3)
   @MaxLength(100)
   name: string;
 
-  @Transform(normalize)
+  @Transform(normalizeEmailInput)
   @IsString()
   @IsEmail()
   @MaxLength(254)

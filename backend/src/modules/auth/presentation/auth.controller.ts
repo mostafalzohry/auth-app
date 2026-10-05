@@ -2,20 +2,31 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
   HttpCode,
   Post,
-  UseInterceptors,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
-import { NoStoreInterceptor } from '../../../common/interceptors/no-store.interceptor';
+import type { Response } from 'express';
 import { toPublicUser } from '../../users/domain/public-user';
 import { DuplicateEmailError } from '../../users/domain/user.errors';
+import { InvalidCredentialsError } from '../application/auth.errors';
 import { AuthService } from '../application/auth.service';
+import { AuthCookieAdapter } from '../infrastructure/auth-cookie.adapter';
+import { AccessTokenGuard } from './access-token.guard';
+import type { AuthenticatedRequest } from './authenticated-request';
+import { SigninDto } from './dto/signin.dto';
 import { SignupDto } from './dto/signup.dto';
 
 @Controller('api/auth')
-@UseInterceptors(NoStoreInterceptor)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cookies: AuthCookieAdapter,
+  ) {}
 
   @Post('signup')
   @HttpCode(201)
@@ -29,5 +40,35 @@ export class AuthController {
       }
       throw error;
     }
+  }
+
+  @Post('signin')
+  @HttpCode(200)
+  async signin(
+    @Body() dto: SigninDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const { user, accessToken } = await this.authService.signin(dto);
+      this.cookies.issue(res, accessToken);
+      return { user: toPublicUser(user) };
+    } catch (error) {
+      if (error instanceof InvalidCredentialsError) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+      throw error;
+    }
+  }
+
+  @Get('me')
+  @UseGuards(AccessTokenGuard)
+  me(@Req() req: AuthenticatedRequest) {
+    return { user: toPublicUser(req.authUser) };
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.cookies.clear(res);
   }
 }
