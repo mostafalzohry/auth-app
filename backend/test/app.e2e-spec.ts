@@ -1,37 +1,29 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Type } from '@nestjs/common';
 import request from 'supertest';
-import { getConnectionToken } from '@nestjs/mongoose';
 import { App } from 'supertest/types';
+import {
+  createTestApp,
+  createUserRepositoryDouble,
+  loadAppModule,
+  restoreEnv,
+  snapshotEnv,
+} from './helpers/test-app';
 
 describe('AppController (e2e)', () => {
-  const originalEnv = { ...process.env };
-  let AppModule: typeof import('./../src/app.module').AppModule;
+  const originalEnv = snapshotEnv();
+  let AppModule: Type<unknown>;
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
-    process.env.MONGODB_URI = 'mongodb://localhost:27017/auth_app_test';
-    ({ AppModule } = await import('./../src/app.module'));
+    AppModule = await loadAppModule();
   });
 
   afterAll(() => {
-    for (const key of Object.keys(process.env)) {
-      if (!(key in originalEnv)) delete process.env[key];
-    }
-    Object.assign(process.env, originalEnv);
+    restoreEnv(originalEnv);
   });
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(getConnectionToken())
-      .useValue({ close: () => Promise.resolve() })
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await createTestApp(AppModule, createUserRepositoryDouble());
   });
 
   it('/ (GET)', () => {

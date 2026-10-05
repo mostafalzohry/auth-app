@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseError } from 'mongoose';
+import { safeDatabaseErrorName } from './database-error-name';
 
 export function sanitizeConnectionError(error: MongooseError): MongooseError {
   return new MongooseError(
-    `Unable to connect to MongoDB (${error.name}). Check MONGODB_URI, credentials and network access.`,
+    `Unable to connect to MongoDB (${safeDatabaseErrorName(error.name)}). Check MONGODB_URI, credentials and network access.`,
   );
 }
 
