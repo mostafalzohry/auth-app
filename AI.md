@@ -15,13 +15,14 @@ I used AI-assisted planning, set implementation constraints, and reviewed the co
   - Passwords, hashes, credentials and the connection string must not appear in logs or responses.
 - **API contract:** the validation rules, the 201/400/409/500 status codes, `Cache-Control: no-store`, and signup that does not sign the user in.
 - **Authentication design:** a signed JWT (HS256, fixed 15-minute lifetime) in an HttpOnly `auth.token` cookie that is not returned in JSON, with verified issuer and audience, no refresh tokens and no denylist. The same generic 401 for an unknown email and a wrong password, a dummy-hash check for unknown emails, a protected `GET /api/auth/me`, and an idempotent logout. I accepted that logout only clears the cookie, so a copied token stays valid until it expires. An initial session-based implementation was replaced with JWT authentication at my request.
+- **CSRF and rate limiting:** I requested and reviewed these security improvements.
 - **Workflow:** small scoped steps, each ending with "stop after this step"; each step also said what to leave out. I asked for a read-only review before committing, and I do all Git work myself.
 - **Test isolation:** automated tests must not use my `.env` or Atlas. Review identified that the e2e environment was configured after `AppModule` was imported. I requested a fix so automated tests would not depend on my local `.env` or Atlas.
 - **Logging:** I asked for the connection-error logging to be fixed after the first version, said to use a logger adapter if the library options could not do it, and later required an allowlist of database error names.
 
 ## What the AI wrote
 
-Under the constraints above, the AI wrote the config validation, Mongoose connection, sanitized logger, users and auth modules (signup and signin DTOs, controller, service, Argon2 hasher), the JWT authentication (token service, cookie adapter, guard, `/me` and logout), the unit and e2e tests, a read-only review, and the refactor of email normalization, public-user mapping and the logger.
+Under the constraints above, the AI wrote the config validation, Mongoose connection, sanitized logger, users and auth modules (signup and signin DTOs, controller, service, Argon2 hasher), the JWT authentication (token service, cookie adapter, guard, `/me` and logout), the CSRF middleware, CORS setup and MongoDB rate limiter, the unit and e2e tests, a read-only review, and the refactor of email normalization, public-user mapping and the logger.
 
 ## Example prompt
 
@@ -52,12 +53,13 @@ A prompt I sent, trimmed:
 - **JWT lifetime check:** the AI first relied on `maxAge` to limit token lifetime, but it limits a token's age, not its `exp - iat`. A new test caught a one-hour token being accepted, so verification now also requires `exp - iat` to be at most 15 minutes.
 - **Cookie parsing:** the `cookie` package returns the first value when a name is repeated, so ambiguity is detected by counting `auth.token` entries in the header; two values are rejected.
 - **Review follow-ups:** review led to stricter JWT timestamp validation and logger cleanup between tests. Focused regression tests cover both changes.
+- **Rate-limiter error classification:** the first version treated every `MongooseError` as a database outage, which would have turned a `CastError` or `ValidationError` into a 503. It now maps only connectivity and operational driver errors, Mongoose server-selection errors and Mongoose buffering timeouts to a 503, and lets other errors become a generic 500. Tests were strengthened for duplicate-key exhaustion and for CSRF checks running before JSON parsing.
 - **Duplication:** email normalization uses one shared helper at the DTO and repository boundaries. Public-user mapping uses one shared function, preserving filtering at the HTTP boundary.
 
 ## Verification
 
-Run by the AI with Node v24.21.0: `npm run build`, `npm run lint`, `npm test -- --runInBand`, `npm run test:e2e -- --runInBand`, Prettier check and `git diff --check`. At the last run, all passed: 11 unit suites (64 tests) and 3 e2e suites (74 tests). The e2e tests use real JWT signing and verification and the real Argon2 hasher, with a stubbed Mongoose connection and an in-memory user repository, so they do not prove Atlas connectivity or real index enforcement. The database tests use mocks, while the hashing tests use real Argon2.
+Run by the AI with Node v24.21.0: `npm run build`, `npm run lint`, `npm test -- --runInBand`, `npm run test:e2e -- --runInBand`, Prettier check and `git diff --check`. At the last run, all passed: 13 unit suites (116 tests) and 5 e2e suites (165 tests). The e2e tests use real JWT signing and verification and the real Argon2 hasher, with a stubbed Mongoose connection, an in-memory user repository and an in-memory fake of the rate-limit collection. No local MongoDB was available, so there is no integration test of the rate limiter: concurrent increments and TTL cleanup have not been tested against a real database. The database tests use mocks, while the hashing tests use real Argon2.
 
 I manually tested the Postman authentication flow, including signup, signin, the protected endpoint and logout. I also checked the saved user document and unique email index in Atlas. These are my reported results; the AI did not independently observe them.
 
-Limitations: logout clears the cookie, and copied JWTs remain valid until expiry. Vercel deployment behavior has not been verified. The unique index has not been verified by a deployment script. The Argon2 native binary has not been checked on the deployment target.
+Limitations: logout clears the cookie, and copied JWTs remain valid until expiry. Vercel deployment behavior has not been verified, including the `TRUST_PROXY_HOPS` value and client-IP attribution. A frontend and backend on separate `*.vercel.app` hosts are cross-site, so the SameSite=Lax cookie would not be sent. Rate limits are per IP in fixed windows, so IPv6 users can rotate addresses and a burst across a window boundary can briefly exceed the limit. The unique index has not been verified by a deployment script. The Argon2 native binary has not been checked on the deployment target.

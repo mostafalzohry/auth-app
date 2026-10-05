@@ -1,10 +1,10 @@
 import { INestApplication, Logger, Type } from '@nestjs/common';
-import request from 'supertest';
 import { App } from 'supertest/types';
 import { SanitizedLogger } from '../src/database/sanitized-logger';
 import { DuplicateEmailError } from '../src/modules/users/domain/user.errors';
 import type { CreateUserInput } from '../src/modules/users/domain/user.types';
 import {
+  api,
   createTestApp,
   createUserRepositoryDouble,
   loadAppModule,
@@ -26,7 +26,7 @@ describe('POST /api/auth/signup (e2e)', () => {
   let repository: ReturnType<typeof createUserRepositoryDouble>;
 
   const signup = (body: unknown) =>
-    request(app.getHttpServer())
+    api(app.getHttpServer())
       .post('/api/auth/signup')
       .send(body as object);
 

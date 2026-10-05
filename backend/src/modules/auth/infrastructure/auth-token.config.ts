@@ -5,4 +5,3 @@ export const ACCESS_TOKEN_AUDIENCE = 'auth-app-api';
 
 export const AUTH_COOKIE_NAME = 'auth.token';
 export const LEGACY_SESSION_COOKIE_NAME = 'auth.sid';
-export const PRODUCTION_TRUSTED_PROXY_HOPS = 1;

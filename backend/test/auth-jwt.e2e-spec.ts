@@ -6,6 +6,8 @@ import { SanitizedLogger } from '../src/database/sanitized-logger';
 import { InMemoryUserRepository } from './helpers/in-memory-user-repository';
 import {
   TEST_JWT_SECRET,
+  api,
+  apiAgent,
   createTestApp,
   loadAppModule,
   restoreEnv,
@@ -104,7 +106,7 @@ describe('JWT authentication (e2e)', () => {
   async function startApp(production?: boolean) {
     repository = new InMemoryUserRepository();
     app = await createTestApp(AppModule, repository, { production });
-    const res = await request(app.getHttpServer())
+    const res = await api(app.getHttpServer())
       .post('/api/auth/signup')
       .send(signupBody)
       .expect(201);
@@ -113,11 +115,11 @@ describe('JWT authentication (e2e)', () => {
 
   const server = () => app.getHttpServer();
   const signin = (body: unknown = signinBody) =>
-    request(server())
+    api(server())
       .post('/api/auth/signin')
       .send(body as object);
   const me = (cookie?: string) => {
-    const req = request(server()).get('/api/auth/me');
+    const req = api(server()).get('/api/auth/me');
     return cookie ? req.set('Cookie', cookie) : req;
   };
   const meWithToken = (token: string) => me(`auth.token=${token}`);
@@ -261,7 +263,7 @@ describe('JWT authentication (e2e)', () => {
 
   describe('GET /api/auth/me', () => {
     it('returns the public user for a valid token', async () => {
-      const agent = request.agent(server());
+      const agent = apiAgent(server());
       await agent.post('/api/auth/signin').send(signinBody).expect(200);
 
       const res = await agent.get('/api/auth/me').expect(200);
@@ -417,7 +419,7 @@ describe('JWT authentication (e2e)', () => {
     it('returns 204 with no body and clears auth.token and the legacy cookie', async () => {
       const signedIn = await signin().expect(200);
 
-      const res = await request(server())
+      const res = await api(server())
         .post('/api/auth/logout')
         .set('Cookie', pair(cookieNamed(signedIn, 'auth.token') as string))
         .expect(204);
@@ -445,7 +447,7 @@ describe('JWT authentication (e2e)', () => {
       ];
 
       for (const cookie of cookies) {
-        const req = request(server()).post('/api/auth/logout');
+        const req = api(server()).post('/api/auth/logout');
         const res = await (cookie ? req.set('Cookie', cookie) : req);
         expect(res.status).toBe(204);
         expect(cookieNamed(res, 'auth.token')).toMatch(EPOCH);
@@ -456,7 +458,7 @@ describe('JWT authentication (e2e)', () => {
       const signedIn = await signin().expect(200);
       const copied = tokenOf(signedIn);
 
-      await request(server())
+      await api(server())
         .post('/api/auth/logout')
         .set('Cookie', `auth.token=${copied}`)
         .expect(204);
@@ -465,7 +467,7 @@ describe('JWT authentication (e2e)', () => {
     });
 
     it('a browser that follows the cleared cookie is logged out', async () => {
-      const agent = request.agent(server());
+      const agent = apiAgent(server());
       await agent.post('/api/auth/signin').send(signinBody).expect(200);
       await agent.get('/api/auth/me').expect(200);
 
@@ -477,7 +479,7 @@ describe('JWT authentication (e2e)', () => {
 
   describe('signup', () => {
     it('does not sign the user in', async () => {
-      const res = await request(server())
+      const res = await api(server())
         .post('/api/auth/signup')
         .send({
           name: 'John Roe',
@@ -492,16 +494,13 @@ describe('JWT authentication (e2e)', () => {
     });
 
     it('still rejects a duplicate email with 409', async () => {
-      await request(server())
-        .post('/api/auth/signup')
-        .send(signupBody)
-        .expect(409);
+      await api(server()).post('/api/auth/signup').send(signupBody).expect(409);
     });
   });
 
   describe('cache headers', () => {
     it('sets no-store on every auth response, including body parser errors', async () => {
-      const agent = request.agent(server());
+      const agent = apiAgent(server());
       const responses = [
         await agent.post('/api/auth/signin').send(signinBody),
         await agent
@@ -511,8 +510,8 @@ describe('JWT authentication (e2e)', () => {
         await agent.get('/api/auth/me'),
         await agent.post('/api/auth/logout'),
         await agent.get('/api/auth/me'),
-        await request(server()).get('/api/auth/does-not-exist'),
-        await request(server())
+        await api(server()).get('/api/auth/does-not-exist'),
+        await api(server())
           .post('/api/auth/signin')
           .set('Content-Type', 'application/json')
           .send('{"email": '),
@@ -551,7 +550,7 @@ describe('JWT authentication (e2e)', () => {
       expect(cookie).not.toMatch(/Domain=/i);
       expect(cookieNamed(signedIn, 'auth.sid')).toContain('Secure');
 
-      const loggedOut = await request(server())
+      const loggedOut = await api(server())
         .post('/api/auth/logout')
         .expect(204);
       expect(cookieNamed(loggedOut, 'auth.token')).toContain('Secure');

@@ -20,6 +20,7 @@ import { AccessTokenGuard } from './access-token.guard';
 import type { AuthenticatedRequest } from './authenticated-request';
 import { SigninDto } from './dto/signin.dto';
 import { SignupDto } from './dto/signup.dto';
+import { RateLimit, RateLimitGuard } from './rate-limit.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -30,6 +31,8 @@ export class AuthController {
 
   @Post('signup')
   @HttpCode(201)
+  @RateLimit('signup')
+  @UseGuards(RateLimitGuard)
   async signup(@Body() dto: SignupDto) {
     try {
       const user = await this.authService.signup(dto);
@@ -44,6 +47,8 @@ export class AuthController {
 
   @Post('signin')
   @HttpCode(200)
+  @RateLimit('signin')
+  @UseGuards(RateLimitGuard)
   async signin(
     @Body() dto: SigninDto,
     @Res({ passthrough: true }) res: Response,
