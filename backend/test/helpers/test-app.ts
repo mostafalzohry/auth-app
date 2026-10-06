@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { configureApp } from '../../src/app.setup';
+import { configureSwagger } from '../../src/swagger.setup';
 import { AUTH_COOKIE_SECURE } from '../../src/modules/auth/infrastructure/auth-cookie.adapter';
 import { RATE_LIMIT_MODEL } from '../../src/modules/auth/infrastructure/rate-limit-bucket.schema';
 import { USER_REPOSITORY } from '../../src/modules/users/domain/user-repository.port';
@@ -69,6 +70,7 @@ export interface TestAppOptions {
   production?: boolean;
   trustProxyHops?: number;
   rateLimitModel?: InMemoryRateLimitModel;
+  swagger?: boolean;
 }
 
 export async function createTestApp(
@@ -96,6 +98,7 @@ export async function createTestApp(
     production: options.production,
     trustProxyHops: options.trustProxyHops ?? 0,
   });
+  if (options.swagger) configureSwagger(app);
   await app.init();
   return app;
 }

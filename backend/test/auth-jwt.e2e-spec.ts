@@ -528,7 +528,7 @@ describe('JWT authentication (e2e)', () => {
     it('leaves GET / unchanged', async () => {
       const res = await request(server()).get('/').expect(200);
 
-      expect(res.text).toBe('Hello World!');
+      expect(res.text).toBe('hi i am mostafa');
       expect(res.headers['cache-control']).toBeUndefined();
     });
   });

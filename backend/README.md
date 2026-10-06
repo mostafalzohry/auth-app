@@ -1,33 +1,10 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Auth API (NestJS + MongoDB)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Sign up, sign in, a protected current-user endpoint and logout, using a short-lived JWT in an HttpOnly cookie. Built with NestJS 12, Mongoose (MongoDB), Argon2id password hashing, CSRF protection and MongoDB-backed rate limiting. The frontend is not part of this folder.
 
 ## Node.js requirement
 
-Node.js **24.9 or newer** is required (verified with v24.21.0 and npm 11.19.0). Jest only loads the ESM-only NestJS 12 packages (such as `@nestjs/testing`) through `require()` on Node 24.9+; on Node 22 the tests fail with "Must use import to load ES Module".
+Node.js **24.9 or newer** (`engines.node` is `24.x`). Jest only loads the ESM-only NestJS 12 packages through `require()` on Node 24.9+; on Node 22 the tests fail with "Must use import to load ES Module".
 
 With Node 24 installed through Homebrew (`brew install node@24`), activate it for the current shell session only:
 
@@ -36,102 +13,117 @@ export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
 node -v   # v24.x, at least 24.9
 ```
 
-This does not change your global default Node version.
-
-## Project setup
+## Setup
 
 ```bash
-$ npm install
+cd backend
+npm install
+cp .env.example .env   # then edit .env
+npm run start:dev      # http://localhost:3000
 ```
 
-## Compile and run the project
+## Environment variables
+
+| Name                   | Required        | Notes                                                                                                                |
+| ---------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `MONGODB_URI`          | yes             | `mongodb://` or `mongodb+srv://` connection string.                                                                  |
+| `JWT_SECRET`           | yes             | At least 32 bytes. Generate one locally: `openssl rand -hex 32`. Never commit it.                                    |
+| `AUTH_ALLOWED_ORIGINS` | yes             | Comma-separated exact browser origins allowed to call `/api/auth`. No paths, no wildcards, https only in production. |
+| `TRUST_PROXY_HOPS`     | production only | Number of trusted reverse-proxy hops (0–5). Ignored outside production. See "Deploy on Vercel".                      |
+| `NODE_ENV`             | no              | `development` (default), `test` or `production`. `production` makes the auth cookie `Secure`.                        |
+| `PORT`                 | no              | Default `3000`.                                                                                                      |
+
+`.env.example` has local examples. For a Vite frontend use `AUTH_ALLOWED_ORIGINS=http://localhost:5173` (add `http://127.0.0.1:5173` if you open the app that way).
+
+## API and manual testing (Postman or curl)
+
+| Method and path         | Purpose                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `GET /`                 | hi i am mostafa                                                  |
+| `POST /api/auth/signup` | Create an account (5 attempts per IP per 15 minutes)             |
+| `POST /api/auth/signin` | Sets the `auth.token` cookie (10 attempts per IP per 15 minutes) |
+| `GET /api/auth/me`      | Protected: current user                                          |
+| `POST /api/auth/logout` | Clears the cookie                                                |
+
+Every authentication POST needs:
+
+- `Origin` equal to one of `AUTH_ALLOWED_ORIGINS` (Postman does not add it for you)
+- `X-Auth-Request: 1`
+- `Content-Type: application/json` for signup and signin (logout needs no body)
+
+Errors are generic: 403 CSRF check failed, 415 wrong content type, 429 rate limit (see `Retry-After`), 503 rate-limit store unavailable.
+
+The token is a 15-minute HS256 JWT that is never returned in JSON. Logout clears the cookie but does not revoke tokens: a copied JWT stays valid until it expires.
+
+## Swagger UI
+
+- UI: `http://localhost:3000/swagger`
+- OpenAPI JSON: `http://localhost:3000/swagger-json`
+
+To use "Try it out", the origin of the `/swagger` page must be listed in `AUTH_ALLOWED_ORIGINS` (for example `http://localhost:3000` locally). The page adds `X-Auth-Request: 1` to authentication POSTs and sends cookies. The browser sets `Origin` and `Cookie` itself.
+
+1. `POST /api/auth/signup` with a name, an email and a password that meets the rules.
+2. `POST /api/auth/signin` with the same email and password. The response sets the `auth.token` cookie in your browser.
+3. `GET /api/auth/me` returns the user, using that cookie.
+4. `POST /api/auth/logout` clears the cookie; `GET /api/auth/me` then returns 401.
+
+There is no Authorize step: an HttpOnly cookie cannot be injected from a page.
+
+## Scripts
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run build
+npm run lint
+npm test -- --runInBand             # unit tests
+npm run test:e2e -- --runInBand     # e2e tests (no database needed)
+npx prettier --check "src/**/*.ts" "test/**/*.ts"
 ```
 
-## Run tests
+Automated tests never read `.env` and never contact MongoDB; the database is replaced by test doubles.
 
-```bash
-# unit tests
-$ npm run test
+## Deploy on Vercel
 
-# e2e tests
-$ npm run test:e2e
+Vercel deploys NestJS with zero configuration: it detects `src/main.ts` and serves the app as one Vercel Function. No `vercel.json` and no exported handler are needed, and none is included. Sources: [NestJS on Vercel](https://vercel.com/docs/frameworks/backend/nestjs), [supported Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
 
-# test coverage
-$ npm run test:cov
-```
+### Dashboard steps
 
-## Deployment
+1. Push the repository to GitHub, then in Vercel choose **Add New → Project** and import it.
+2. **Root Directory:** `backend` (the app is in a subfolder).
+3. **Framework Preset:** NestJS (auto-detected). Leave Build Command and Output Directory empty.
+4. **Install Command:** override with `npm install --production=false`. Setting `NODE_ENV=production` as a project variable makes npm skip devDependencies, which Vercel documents as a cause of missing build dependencies ([guide](https://vercel.com/kb/guide/dependencies-from-package-json-missing-after-install)).
+5. **Node.js Version:** 24.x (`engines.node` already pins it).
+6. **Environment Variables** (Settings → Environment Variables; mark secrets as Sensitive):
+   - `NODE_ENV` = `production`
+   - `MONGODB_URI` = your Atlas connection string
+   - `JWT_SECRET` = a new value from `openssl rand -hex 32` (not your local one)
+   - `AUTH_ALLOWED_ORIGINS` = your exact frontend `https://` origin, plus the exact backend `https://` origin if you want to use `/swagger` on it, for example `https://my-frontend.example.com,https://my-api.vercel.app`
+   - `TRUST_PROXY_HOPS` = `1` (proposed, **unverified**, see below)
+7. Deploy. The backend origin is only known after the first deploy, so add it to `AUTH_ALLOWED_ORIGINS` and redeploy to use Swagger there.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Preview deployments get their own origins, which are not in the allow-list (wildcards are not supported), so authentication POSTs from them return 403 unless you add each origin.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Frontend and cookie requirement
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+The cookie is `SameSite=Lax` and requests with `Sec-Fetch-Site: cross-site` are rejected. The frontend and API must therefore be same-site, for example `app.example.com` and `api.example.com`, or the frontend proxying `/api` to the backend. Two separate `*.vercel.app` hosts are likely cross-site; verify this before relying on it.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### MongoDB Atlas network access
 
-## Observability
+Vercel uses dynamic egress IPs by default. Your Atlas project only accepts connections from its IP access list. On a plan without Static IPs this means allowing `0.0.0.0/0` ("access from anywhere"), which is a real security trade-off: the database is then protected only by its credentials and TLS, so use a strong, least-privilege database user. Vercel [Static IPs](https://vercel.com/docs/networking/static-ips) give fixed egress addresses you can allow-list instead, but they are available on Pro and Enterprise plans only (listed at $100/month per project plus data transfer). This repository does not change any Atlas setting. Shared free Atlas tiers also have connection and throughput limits; check the Atlas documentation for your tier.
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+### Client IP and `TRUST_PROXY_HOPS`
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+Rate limits use `req.ip`. In production Express trusts exactly `TRUST_PROXY_HOPS` proxies in front of the app ([Express docs](https://expressjs.com/en/guide/behind-proxies.html)). Vercel documents that it overwrites `X-Forwarded-For` with the client's public IP and does not forward external values ([docs](https://vercel.com/docs/headers/request-headers)). That makes `1` plausible, but how many proxies the function actually sees has not been verified on a deployment. Verify it after deploying (checklist below); a wrong value either puts every user in one bucket (too low) or lets clients spoof their IP (too high).
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+### Database indexes
 
-To add it to this project:
+The unique email index (`users`) and the TTL index on `rate_limits.expiresAt` are created by Mongoose when the app starts. This is additive and idempotent; the app never calls `syncIndexes` and never drops anything. The Atlas database user needs permission to create indexes.
 
-```bash
-$ npm install @nestjs/observe
-```
+### Post-deployment checklist
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `GET /` returns `hi i am mostafa`; `/swagger` loads with styles and scripts (no 404s in the browser network tab) and `/swagger-json` returns JSON. If the Swagger assets 404, serve them from a CDN with `customCssUrl` and `customJs` in `src/swagger.setup.ts`.
+- Signup and signin succeed (this proves Atlas connectivity and that Argon2's native binary loads). Check the Vercel function logs for startup errors.
+- The signin `Set-Cookie` header contains `auth.token`, `HttpOnly`, `SameSite=Lax`, `Path=/` and `Secure`. `GET /api/auth/me` returns the user, and `POST /api/auth/logout` clears the cookie.
+- CSRF: a signin POST without `Origin`, or with another origin, returns 403 and nothing is hashed.
+- Rate limit: the 11th signin from one network returns 429 with `Retry-After`. A different network (for example a phone) is still allowed, and repeating requests with a made-up `X-Forwarded-For` does not avoid the limit. If a second network is also blocked, `TRUST_PROXY_HOPS` is too low; if spoofing evades the limit, it is too high.
+- Atlas: the `users` collection has the unique `email` index and `rate_limits` has the TTL index on `expiresAt`.
+- Logs contain no tokens, cookies, passwords or connection strings.
