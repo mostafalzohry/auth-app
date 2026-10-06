@@ -33,9 +33,7 @@ const AccountHome = ({
         />
       }
     >
-      <p className="text-lg text-muted-foreground">
-        Welcome to the application.
-      </p>
+ 
 
       <div aria-live="polite" aria-atomic="true">
         {error && (
