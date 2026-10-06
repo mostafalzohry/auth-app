@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { logout } from "@/lib/auth-api";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { clearCurrentUser } from "@/lib/current-user";
 
 export function useSignOut(onSignedOut: () => void) {
   const [pending, setPending] = useState(false);
@@ -16,6 +17,7 @@ export function useSignOut(onSignedOut: () => void) {
     setError(null);
     try {
       await logout();
+      clearCurrentUser();
       onSignedOut();
     } catch (err) {
       setError(authErrorMessage(err, "session"));

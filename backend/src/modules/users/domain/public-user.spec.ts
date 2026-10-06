@@ -35,4 +35,22 @@ describe('toPublicUser', () => {
     });
     expect(JSON.stringify(result)).not.toContain('secret-hash');
   });
+
+  it('includes avatarUrl only when present', () => {
+    const base = {
+      id: '1',
+      name: 'J',
+      email: 'j@example.com',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    expect(
+      toPublicUser({ ...base, avatarUrl: '/api/auth/avatar?v=1' }),
+    ).toEqual({
+      ...base,
+      avatarUrl: '/api/auth/avatar?v=1',
+    });
+    expect('avatarUrl' in toPublicUser(base)).toBe(false);
+  });
 });

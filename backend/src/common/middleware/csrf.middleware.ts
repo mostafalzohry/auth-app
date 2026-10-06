@@ -8,11 +8,16 @@ const CSRF_HEADER_VALUE = '1';
 export interface CsrfOptions {
   allowedOrigins: readonly string[];
   bodylessPaths: readonly string[];
+  multipartPaths?: readonly string[];
 }
 
 export function createCsrfMiddleware(options: CsrfOptions): RequestHandler {
   const allowedOrigins = new Set(options.allowedOrigins);
   const bodylessPaths = new Set(options.bodylessPaths.map(normalizePath));
+
+  const multipartPaths = new Set(
+    (options.multipartPaths ?? []).map(normalizePath),
+  );
 
   return (req: Request, res: Response, next: NextFunction) => {
     if (SAFE_METHODS.has(req.method)) return next();
@@ -26,9 +31,14 @@ export function createCsrfMiddleware(options: CsrfOptions): RequestHandler {
       fetchSite?.toLowerCase() !== 'cross-site';
     if (!trusted) return reject(res, 403, 'Forbidden');
 
-    const expectsJson = !bodylessPaths.has(normalizePath(req.path));
-    if (expectsJson && !req.is('application/json')) {
-      return reject(res, 415, 'Unsupported Media Type');
+    const path = normalizePath(req.path);
+    if (!bodylessPaths.has(path)) {
+      const mediaType = multipartPaths.has(path)
+        ? 'multipart/form-data'
+        : 'application/json';
+      if (!req.is(mediaType)) {
+        return reject(res, 415, 'Unsupported Media Type');
+      }
     }
     next();
   };

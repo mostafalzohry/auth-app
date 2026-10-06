@@ -46,5 +46,12 @@ import { RateLimitGuard } from './presentation/rate-limit.guard';
     },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
   ],
+  exports: [
+    AuthService,
+    AuthCookieAdapter,
+    AccessTokenGuard,
+    RateLimitGuard,
+    RATE_LIMITER,
+  ],
 })
 export class AuthModule {}

@@ -25,6 +25,8 @@ export async function apiRequest<T = void>(
   path: string,
   { method = "GET", body, signal }: ApiRequestOptions = {},
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(path, {
@@ -34,9 +36,13 @@ export async function apiRequest<T = void>(
       signal,
       headers: {
         "X-Auth-Request": "1",
-        ...(body !== undefined && { "Content-Type": "application/json" }),
+        ...(body !== undefined &&
+          !isFormData && { "Content-Type": "application/json" }),
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined || isFormData
+          ? (body as FormData | undefined)
+          : JSON.stringify(body),
     });
   } catch (error) {
     if (signal?.aborted) throw error;

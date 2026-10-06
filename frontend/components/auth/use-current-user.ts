@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { getCurrentUser, type PublicUser } from "@/lib/auth-api";
+import type { PublicUser } from "@/lib/auth-api";
 import { authErrorMessage } from "@/lib/auth-errors";
+import {
+  ensureCurrentUser,
+  peekCurrentUser,
+  refreshCurrentUser,
+} from "@/lib/current-user";
 
 export type CurrentUserState =
   | { status: "loading" }
@@ -13,13 +18,16 @@ export type CurrentUserState =
 
 export function useCurrentUser() {
   const router = useRouter();
-  const [state, setState] = useState<CurrentUserState>({ status: "loading" });
+  const [state, setState] = useState<CurrentUserState>(() => {
+    const user = peekCurrentUser();
+    return user ? { status: "ready", user } : { status: "loading" };
+  });
   const [attempt, setAttempt] = useState(0);
 
   const loadUser = useCallback(
-    (signal: AbortSignal) => {
-      getCurrentUser(signal)
-        .then(({ user }) => {
+    (signal: AbortSignal, force: boolean) => {
+      (force ? refreshCurrentUser() : ensureCurrentUser())
+        .then((user) => {
           if (!signal.aborted) setState({ status: "ready", user });
         })
         .catch((error: unknown) => {
@@ -39,7 +47,7 @@ export function useCurrentUser() {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadUser(controller.signal);
+    loadUser(controller.signal, attempt > 0);
     return () => controller.abort();
   }, [loadUser, attempt]);
 

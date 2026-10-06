@@ -6,6 +6,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { configureApp } from '../../src/app.setup';
 import { configureSwagger } from '../../src/swagger.setup';
+import { AvatarImage } from '../../src/modules/users/domain/avatar';
 import { AUTH_COOKIE_SECURE } from '../../src/modules/auth/infrastructure/auth-cookie.adapter';
 import { RATE_LIMIT_MODEL } from '../../src/modules/auth/infrastructure/rate-limit-bucket.schema';
 import { USER_REPOSITORY } from '../../src/modules/users/domain/user-repository.port';
@@ -63,6 +64,8 @@ export function createUserRepositoryDouble() {
       Promise<UserCredentials | null>,
       [string]
     >(),
+    replaceAvatar: jest.fn<Promise<User | null>, [string, AvatarImage]>(),
+    findAvatar: jest.fn<Promise<AvatarImage | null>, [string]>(),
   };
 }
 

@@ -41,6 +41,10 @@ export function configureApp(
   });
   app.use(
     '/api/auth',
-    createCsrfMiddleware({ allowedOrigins, bodylessPaths: ['/logout'] }),
+    createCsrfMiddleware({
+      allowedOrigins,
+      bodylessPaths: ['/logout'],
+      multipartPaths: ['/avatar'],
+    }),
   );
 }

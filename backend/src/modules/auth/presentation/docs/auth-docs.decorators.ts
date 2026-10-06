@@ -37,11 +37,11 @@ export function ApiJsonBody() {
   );
 }
 
-export function ApiRateLimited(attempts: number) {
+export function ApiRateLimited(attempts: number, per = 'client IP') {
   return applyDecorators(
     ApiResponse({
       status: 429,
-      description: `More than ${attempts} attempts from one client IP in a 15-minute fixed window. Successful and failed attempts both count.`,
+      description: `More than ${attempts} attempts from one ${per} in a 15-minute fixed window. Successful and failed attempts both count.`,
       type: ErrorResponse,
       headers: {
         'Retry-After': {

@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
-import { getCurrentUser, signin } from "@/lib/auth-api";
+import { signin } from "@/lib/auth-api";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { clearCurrentUser, refreshCurrentUser } from "@/lib/current-user";
 import {
   signinSchema,
   type SigninFormValues,
@@ -41,9 +42,10 @@ const SigninForm = () => {
     inFlight.current = true;
     setServerError(null);
     try {
+      clearCurrentUser();
       await signin(values);
       try {
-        await getCurrentUser();
+        await refreshCurrentUser();
       } catch (error) {
         throw error instanceof ApiError && error.status === 401
           ? new SessionNotStoredError()

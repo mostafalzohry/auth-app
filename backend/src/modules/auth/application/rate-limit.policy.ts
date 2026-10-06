@@ -8,4 +8,5 @@ export const RATE_LIMIT_POLICIES: Record<
 > = {
   signup: { limit: 5, windowMs: FIFTEEN_MINUTES_MS },
   signin: { limit: 10, windowMs: FIFTEEN_MINUTES_MS },
+  avatar: { limit: 10, windowMs: FIFTEEN_MINUTES_MS },
 };

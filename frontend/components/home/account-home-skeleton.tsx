@@ -9,14 +9,9 @@ const AccountHomeSkeleton = () => {
       mainProps={{ role: "status", "aria-live": "polite" }}
     >
       <span className="sr-only">Checking your session…</span>
-      <div className="space-y-3" aria-hidden="true">
-        <div className={`${bar} h-12 w-2/3`} />
-        <div className={`${bar} h-5 w-1/2`} />
-      </div>
-      <div className="grid gap-8 md:grid-cols-2" aria-hidden="true">
-        <div className={`${bar} h-72`} />
-        <div className={`${bar} h-72`} />
-      </div>
+      <div aria-hidden="true" className={`${bar} h-5 w-56`} />
+      <div aria-hidden="true" className={`${bar} h-64 rounded-2xl`} />
+      <div aria-hidden="true" className={`${bar} h-48 rounded-2xl`} />
     </HomeLayout>
   );
 };

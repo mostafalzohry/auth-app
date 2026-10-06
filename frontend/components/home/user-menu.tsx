@@ -1,22 +1,18 @@
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getInitials } from "@/lib/user-display";
+import UserAvatar from "@/components/home/user-avatar";
 
 interface UserMenuProps {
   name: string;
+  avatarUrl?: string;
   pending: boolean;
   onSignOut: () => void;
 }
 
-const UserMenu = ({ name, pending, onSignOut }: UserMenuProps) => {
+const UserMenu = ({ name, avatarUrl, pending, onSignOut }: UserMenuProps) => {
   return (
     <div className="flex shrink-0 items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="flex size-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-900"
-      >
-        {getInitials(name)}
-      </span>
+      <UserAvatar name={name} src={avatarUrl} className="size-9 text-sm" />
       <Button
         variant="outline"
         onClick={onSignOut}

@@ -83,3 +83,20 @@ describe("apiRequest", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("apiRequest with FormData", () => {
+  it("sends the FormData as-is without JSON or a manual Content-Type", async () => {
+    const fetchMock = mockFetch(jsonResponse(200, { ok: true }));
+    const form = new FormData();
+    form.append("file", new File(["x"], "a.png", { type: "image/png" }));
+
+    await apiRequest("/api/auth/avatar", { method: "POST", body: form });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/auth/avatar");
+    expect(init.body).toBe(form);
+    expect(init.credentials).toBe("include");
+    expect(init.headers).toEqual({ "X-Auth-Request": "1" });
+    expect(Object.keys(init.headers as object)).not.toContain("Content-Type");
+  });
+});

@@ -5,6 +5,7 @@ export function toPublicUser(user: User): User {
     id: user.id,
     name: user.name,
     email: user.email,
+    ...(user.avatarUrl !== undefined && { avatarUrl: user.avatarUrl }),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

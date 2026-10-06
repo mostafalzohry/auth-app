@@ -1,4 +1,4 @@
-export type RateLimitScope = 'signup' | 'signin';
+export type RateLimitScope = 'signup' | 'signin' | 'avatar';
 
 export interface RateLimitRequest {
   scope: RateLimitScope;

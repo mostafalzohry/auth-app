@@ -57,7 +57,7 @@ describe('Swagger and OpenAPI (e2e)', () => {
       expect(res.body.info.title).toBe('Auth API');
     });
 
-    it('documents exactly the five endpoints', () => {
+    it('documents exactly the seven endpoints', () => {
       expect(
         Object.entries(document.paths)
           .flatMap(([path, methods]) =>
@@ -66,7 +66,9 @@ describe('Swagger and OpenAPI (e2e)', () => {
           .sort(),
       ).toEqual([
         'get /',
+        'get /api/auth/avatar',
         'get /api/auth/me',
+        'post /api/auth/avatar',
         'post /api/auth/logout',
         'post /api/auth/signin',
         'post /api/auth/signup',
@@ -162,7 +164,10 @@ describe('Swagger and OpenAPI (e2e)', () => {
         '#/components/schemas/PublicUserResponse',
       );
       expect(Object.keys(schemas.PublicUserResponse.properties).sort()).toEqual(
-        ['createdAt', 'email', 'id', 'name', 'updatedAt'],
+        ['avatarUrl', 'createdAt', 'email', 'id', 'name', 'updatedAt'],
+      );
+      expect(schemas.PublicUserResponse.required ?? []).not.toContain(
+        'avatarUrl',
       );
       expect(JSON.stringify(document)).not.toMatch(/passwordHash/i);
       for (const [path, method, status] of [
@@ -175,6 +180,39 @@ describe('Swagger and OpenAPI (e2e)', () => {
             .schema.$ref,
         ).toBe('#/components/schemas/UserEnvelopeResponse');
       }
+    });
+
+    it('documents the multipart upload and the image response', () => {
+      const upload = operation('/api/auth/avatar', 'post');
+      const read = operation('/api/auth/avatar', 'get');
+
+      expect(
+        upload.requestBody.content['multipart/form-data'].schema,
+      ).toMatchObject({
+        required: ['file'],
+        properties: { file: { type: 'string', format: 'binary' } },
+      });
+      expect(
+        upload.responses['200'].content['application/json'].schema.$ref,
+      ).toBe('#/components/schemas/UserEnvelopeResponse');
+      expect(Object.keys(upload.responses).sort()).toEqual(
+        expect.arrayContaining([
+          '200',
+          '400',
+          '401',
+          '403',
+          '413',
+          '415',
+          '429',
+          '503',
+        ]),
+      );
+      expect(Object.keys(read.responses['200'].content)).toEqual([
+        'image/webp',
+      ]);
+      expect(Object.keys(read.responses)).toEqual(
+        expect.arrayContaining(['401', '404']),
+      );
     });
 
     it('documents the status codes, the cookie headers and the rate limits', () => {

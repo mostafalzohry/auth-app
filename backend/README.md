@@ -37,23 +37,29 @@ npm run start:dev      # http://localhost:3000
 
 ## API and manual testing (Postman or curl)
 
-| Method and path         | Purpose                                                          |
-| ----------------------- | ---------------------------------------------------------------- |
-| `GET /`                 | hi i am mostafa                                                  |
-| `POST /api/auth/signup` | Create an account (5 attempts per IP per 15 minutes)             |
-| `POST /api/auth/signin` | Sets the `auth.token` cookie (10 attempts per IP per 15 minutes) |
-| `GET /api/auth/me`      | Protected: current user                                          |
-| `POST /api/auth/logout` | Clears the cookie                                                |
+| Method and path         | Purpose                                                                     |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `GET /`                 | hi i am mostafa                                                             |
+| `POST /api/auth/signup` | Create an account (5 attempts per IP per 15 minutes)                        |
+| `POST /api/auth/signin` | Sets the `auth.token` cookie (10 attempts per IP per 15 minutes)            |
+| `GET /api/auth/me`      | Protected: current user                                                     |
+| `POST /api/auth/logout` | Clears the cookie                                                           |
+| `POST /api/auth/avatar` | Protected: upload or replace the profile image (10 per user per 15 minutes) |
+| `GET /api/auth/avatar`  | Protected: the current user's image (`image/webp`), 404 if none             |
 
 Every authentication POST needs:
 
 - `Origin` equal to one of `AUTH_ALLOWED_ORIGINS` (Postman does not add it for you)
 - `X-Auth-Request: 1`
-- `Content-Type: application/json` for signup and signin (logout needs no body)
+- `Content-Type: application/json` for signup and signin (logout needs no body); `multipart/form-data` only on `POST /api/auth/avatar`
 
 Errors are generic: 403 CSRF check failed, 415 wrong content type, 429 rate limit (see `Retry-After`), 503 rate-limit store unavailable.
 
 The token is a 15-minute HS256 JWT that is never returned in JSON. Logout clears the cookie but does not revoke tokens: a copied JWT stays valid until it expires.
+
+### Profile image
+
+`POST /api/auth/avatar` takes exactly one file in the multipart field `file` (JPEG, PNG or WebP, at most 2 MiB, at most 24 megapixels; no other fields or parts). The owner is the user in the verified `auth.token` cookie. Authentication and the per-user rate limit run before the body is buffered. The bytes are checked by magic number (SVG, GIF and corrupt files are rejected), decoded with [sharp](https://sharp.pixelplumbing.com/), auto-oriented, resized to fit 256x256, stripped of metadata, re-encoded as WebP (at most 128 KiB) and stored as binary in the user's own `users` document (`avatarData`, `avatarContentType`, `avatarVersion`), replacing the previous image in one update that never touches credentials. `avatarData` is `select: false`, so no normal user or credential query loads it. Public user JSON gets an optional relative `avatarUrl` (`/api/auth/avatar?v=<version>`), never image bytes. `GET /api/auth/avatar` returns `image/webp` with `nosniff` and `Cache-Control: private, no-store`. Responses: 400 bad or corrupt upload, 401, 403, 413 too large, 415 unsupported, 429, 503.
 
 ## Swagger UI
 
@@ -126,4 +132,5 @@ The unique email index (`users`) and the TTL index on `rate_limits.expiresAt` ar
 - CSRF: a signin POST without `Origin`, or with another origin, returns 403 and nothing is hashed.
 - Rate limit: the 11th signin from one network returns 429 with `Retry-After`. A different network (for example a phone) is still allowed, and repeating requests with a made-up `X-Forwarded-For` does not avoid the limit. If a second network is also blocked, `TRUST_PROXY_HOPS` is too low; if spoofing evades the limit, it is too high.
 - Atlas: the `users` collection has the unique `email` index and `rate_limits` has the TTL index on `expiresAt`.
+- Avatar: upload a small PNG in the app and reload; this proves sharp's Linux binary loads on Vercel and that the document write works in Atlas. The request body must stay under Vercel's function request-size limit (a 2 MiB file plus multipart overhead is expected to fit; confirm in Vercel's documentation).
 - Logs contain no tokens, cookies, passwords or connection strings.

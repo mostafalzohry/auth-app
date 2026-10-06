@@ -29,6 +29,8 @@ Pages: `/signup`, `/signin`, and `/welcome` (shown after signing in; it checks `
 
 The browser only calls relative `/api/auth/*` URLs. `next.config.ts` rewrites them to `BACKEND_URL`, so requests stay same-origin and the HttpOnly `auth.token` cookie is stored for the frontend's own origin. Only `/api/auth/*` is proxied (not Swagger or the backend root). The browser's `Origin`, `Cookie`, `X-Auth-Request` and `Sec-Fetch-Site` headers reach the backend unchanged, and the backend's status, `Set-Cookie`, `Cache-Control` and `Retry-After` come back unchanged (checked locally against a mock backend).
 
+Multipart uploads (`POST /api/auth/avatar`) use the same proxy; the fetch helper sends `FormData` without a manual `Content-Type` so the browser adds the boundary. Passing a 2 MiB multipart body through the Next.js rewrite has not been tested against a real deployment.
+
 Because the backend's CSRF check requires the request `Origin` to be allowed, the frontend origin must be listed in the backend's `AUTH_ALLOWED_ORIGINS`.
 
 ## Scripts

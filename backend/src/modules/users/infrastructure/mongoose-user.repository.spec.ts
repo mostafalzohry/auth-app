@@ -27,6 +27,7 @@ function setup() {
     create: jest.fn(),
     findById: jest.fn().mockReturnValue(query),
     findOne: jest.fn().mockReturnValue(query),
+    findOneAndUpdate: jest.fn().mockReturnValue(query),
   };
   const repository = new MongooseUserRepository(
     model as unknown as Model<UserRecord>,
@@ -140,5 +141,96 @@ describe('MongooseUserRepository', () => {
     await expect(
       repository.findCredentialsByEmail('none@example.com'),
     ).resolves.toBeNull();
+  });
+
+  describe('avatar', () => {
+    const image = {
+      data: Buffer.from('webp-bytes'),
+      contentType: 'image/webp' as const,
+    };
+
+    it('maps a stored avatar version to a relative avatarUrl', async () => {
+      const { query, repository } = setup();
+      query.lean.mockResolvedValue(row({ avatarVersion: 3 }));
+
+      const user = await repository.findById(ID);
+
+      expect(user?.avatarUrl).toBe('/api/auth/avatar?v=3');
+    });
+
+    it('leaves avatarUrl out for users without an avatar', async () => {
+      const { query, repository } = setup();
+      query.lean.mockResolvedValue(row());
+
+      const user = await repository.findById(ID);
+
+      expect(user).toEqual(publicUser);
+      expect(Object.keys(user as object)).not.toContain('avatarUrl');
+    });
+
+    it('never selects the binary or the password for normal reads', async () => {
+      const { query, repository } = setup();
+      query.lean.mockResolvedValue(row({ avatarVersion: 1 }));
+
+      await repository.findById(ID);
+
+      expect(query.select).not.toHaveBeenCalled();
+    });
+
+    it('replaces the avatar with one atomic update that skips credentials', async () => {
+      const { model, query, repository } = setup();
+      query.lean.mockResolvedValue(
+        row({ avatarVersion: 2, avatarData: image.data }),
+      );
+
+      const user = await repository.replaceAvatar(ID, image);
+
+      expect(model.findOneAndUpdate).toHaveBeenCalledTimes(1);
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: ID },
+        {
+          $set: { avatarData: image.data, avatarContentType: 'image/webp' },
+          $inc: { avatarVersion: 1 },
+        },
+        { returnDocument: 'after' },
+      );
+      const update = JSON.stringify(model.findOneAndUpdate.mock.calls[0][1]);
+      expect(update).not.toContain('passwordHash');
+      expect(query.select).toHaveBeenCalledWith('-avatarData');
+      expect(user?.avatarUrl).toBe('/api/auth/avatar?v=2');
+      expect(JSON.stringify(user)).not.toContain('avatarData');
+    });
+
+    it('returns null for a malformed id or a missing user without querying', async () => {
+      const { model, query, repository } = setup();
+      query.lean.mockResolvedValue(null);
+
+      expect(await repository.replaceAvatar('nope', image)).toBeNull();
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+      expect(await repository.replaceAvatar(ID, image)).toBeNull();
+    });
+
+    it('reads the stored image as a Buffer from a BSON Binary', async () => {
+      const { query, repository } = setup();
+      query.lean.mockResolvedValue(
+        row({ avatarData: { buffer: new Uint8Array([1, 2, 3]) } }),
+      );
+
+      const avatar = await repository.findAvatar(ID);
+
+      expect(query.select).toHaveBeenCalledWith(
+        '+avatarData avatarContentType',
+      );
+      expect(avatar?.contentType).toBe('image/webp');
+      expect(avatar?.data).toEqual(Buffer.from([1, 2, 3]));
+    });
+
+    it('returns null when there is no avatar', async () => {
+      const { query, repository } = setup();
+      query.lean.mockResolvedValue(row());
+
+      expect(await repository.findAvatar(ID)).toBeNull();
+      expect(await repository.findAvatar('bad-id')).toBeNull();
+    });
   });
 });

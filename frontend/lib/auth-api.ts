@@ -1,4 +1,5 @@
 import { ApiError, apiRequest } from "@/lib/api";
+import { AVATAR_FIELD_NAME } from "@/lib/avatar-policy";
 import { isPublicUser } from "@/lib/validation/public-user";
 import type {
   SigninFormValues,
@@ -9,6 +10,7 @@ export interface PublicUser {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,4 +42,17 @@ export async function getCurrentUser(signal?: AbortSignal) {
 
 export function logout() {
   return apiRequest("/api/auth/logout", { method: "POST" });
+}
+
+export async function uploadAvatar(file: File, signal?: AbortSignal) {
+  const form = new FormData();
+  form.append(AVATAR_FIELD_NAME, file);
+  const data = await apiRequest<unknown>("/api/auth/avatar", {
+    method: "POST",
+    body: form,
+    signal,
+  });
+  const user = (data as { user?: unknown } | null)?.user;
+  if (!isPublicUser(user)) throw new ApiError(500, "Unexpected response");
+  return { user };
 }

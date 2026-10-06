@@ -31,13 +31,14 @@ describe("WelcomeGate", () => {
     render(<WelcomeGate />);
 
     expect((await screen.findByRole("heading", { level: 1 })).textContent).toBe(
-      "Hi, Mostafa Elzohry 👋",
+      "Mostafa Elzohry",
     );
     expect(screen.getByText(WELCOME)).toBeTruthy();
-    expect(screen.getAllByText(user.email)).toHaveLength(1);
+    expect(screen.getAllByText(user.email)).toHaveLength(2);
     expect(screen.getByText("January 1, 2026")).toBeTruthy();
     expect(screen.getByText("You're signed in")).toBeTruthy();
-    expect(screen.getByText("ME")).toBeTruthy();
+    expect(screen.getAllByText("ME")).toHaveLength(2);
+    expect(document.querySelector("img")).toBeNull();
     expect(requestOf(fetchMock)).toMatchObject({
       url: "/api/auth/me",
       method: "GET",
@@ -111,16 +112,14 @@ describe("WelcomeGate", () => {
     ["a failed", () => jsonResponse(503, {})],
   ])("ignores %s result that arrives after unmount", async (_l, make) => {
     let resolve!: (response: Response) => void;
-    const fetchMock = mockFetch(
+    mockFetch(
       new Promise<Response>((r) => {
         resolve = r;
       }),
     );
     const { container, unmount } = render(<WelcomeGate />);
-    const signal = (fetchMock.mock.calls[0][1] as RequestInit).signal;
 
     unmount();
-    expect(signal?.aborted).toBe(true);
     resolve(make());
     await new Promise((r) => setTimeout(r, 0));
 

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { AvatarImage, avatarUrlFor } from '../domain/avatar';
+import { AVATAR_OUTPUT_CONTENT_TYPE } from '../domain/avatar-policy';
 import { normalizeEmail } from '../domain/normalize-email';
 import { toPublicUser } from '../domain/public-user';
 import { UserRepository } from '../domain/user-repository.port';
@@ -12,7 +14,7 @@ const OBJECT_ID_PATTERN = /^[0-9a-fA-F]{24}$/;
 
 type UserRow = Pick<
   UserRecord,
-  'name' | 'email' | 'createdAt' | 'updatedAt'
+  'name' | 'email' | 'avatarVersion' | 'createdAt' | 'updatedAt'
 > & {
   _id: Types.ObjectId;
 };
@@ -22,6 +24,10 @@ function toUser(row: UserRow): User {
     id: row._id.toString(),
     name: row.name,
     email: row.email,
+    avatarUrl:
+      row.avatarVersion === undefined || row.avatarVersion === null
+        ? undefined
+        : avatarUrlFor(row.avatarVersion),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -68,5 +74,41 @@ export class MongooseUserRepository implements UserRepository {
       .select('+passwordHash')
       .lean();
     return row ? { ...toUser(row), passwordHash: row.passwordHash } : null;
+  }
+
+  async replaceAvatar(
+    userId: string,
+    image: AvatarImage,
+  ): Promise<User | null> {
+    if (!OBJECT_ID_PATTERN.test(userId)) return null;
+    const row = await this.users
+      .findOneAndUpdate(
+        { _id: userId },
+        {
+          $set: {
+            avatarData: image.data,
+            avatarContentType: image.contentType,
+          },
+          $inc: { avatarVersion: 1 },
+        },
+        { returnDocument: 'after' },
+      )
+      .select('-avatarData')
+      .lean();
+    return row ? toUser(row) : null;
+  }
+
+  async findAvatar(userId: string): Promise<AvatarImage | null> {
+    if (!OBJECT_ID_PATTERN.test(userId)) return null;
+    const row = await this.users
+      .findById(userId)
+      .select('+avatarData avatarContentType')
+      .lean();
+    const stored: unknown = row?.avatarData;
+    if (!stored) return null;
+    const bytes = Buffer.isBuffer(stored)
+      ? stored
+      : Buffer.from((stored as { buffer: Uint8Array }).buffer);
+    return { data: bytes, contentType: AVATAR_OUTPUT_CONTENT_TYPE };
   }
 }
