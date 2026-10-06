@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { APP_NAME } from "@/lib/brand";
 
-export function AuthBrand() {
+const AuthBrand = () => {
   return (
     <aside className="bg-blue-950 bg-[url('/auth-background.svg')] bg-cover bg-center px-6 py-6 text-blue-50 sm:px-10 lg:flex lg:flex-col lg:justify-between lg:px-14 lg:py-14">
       <div className="flex items-center gap-3">
@@ -25,4 +25,6 @@ export function AuthBrand() {
       </p>
     </aside>
   );
-}
+};
+
+export default AuthBrand;

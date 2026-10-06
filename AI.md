@@ -65,3 +65,9 @@ Run by the AI with Node v24.21.0: `npm run build`, `npm run lint`, `npm test -- 
 I manually tested the Postman authentication flow, including signup, signin, the protected endpoint and logout. I also checked the saved user document and unique email index in Atlas. These are my reported results; the AI did not independently observe them.
 
 Limitations: logout clears the cookie, and copied JWTs remain valid until expiry. Nothing has been deployed, so the production proxy setting (`TRUST_PROXY_HOPS`) and client-IP attribution have not been verified. Rate limits are per IP in fixed windows, so IPv6 users can rotate addresses and a burst across a window boundary can briefly exceed the limit. The unique index has not been verified by a deployment script. The Argon2 native binary has not been checked on the deployment target.
+
+## Authenticated home page and logout (frontend)
+
+`/welcome` is now the authenticated home page. `WelcomeGate` uses `useCurrentUser` (calls `/api/auth/me`, ignores aborted/stale results, redirects to `/signin` on 401, safe error plus retry otherwise) and renders `components/home/*`: header with brand, initials avatar and Sign out; greeting; profile card (name, email, created date, "You're signed in"); API documentation card linking to Swagger in a new tab; a layout-matching skeleton. `getCurrentUser` validates the public-user shape (`lib/validation/public-user.ts`, no new dependency); malformed 200 responses show a safe error. `logout()` POSTs `/api/auth/logout` through the existing API helper; `useSignOut` shows a pending state, blocks duplicate requests, replaces the route with `/signin` on 204 and shows an error with retry on failure. No backend changes, no new dependencies.
+
+Verification (Node 24, mocked API only): `npm run build` (temporary non-secret `BACKEND_URL`), `npm run lint`, `npm run typecheck` passed; `npm test`: 8 files, 70 tests passed; `git diff --check` clean. Not checked in a real browser by the AI.

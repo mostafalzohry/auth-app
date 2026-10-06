@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoaderCircle } from "lucide-react";
-import { FormFeedback } from "@/components/auth/form-feedback";
-import { PasswordInput } from "@/components/auth/password-input";
+import FormFeedback from "@/components/auth/form-feedback";
+import PasswordInput from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -23,11 +23,7 @@ import {
   type SigninFormValues,
 } from "@/lib/validation/auth-schemas";
 
-interface SigninFormProps {
-  notice?: string;
-}
-
-export function SigninForm({ notice }: SigninFormProps) {
+const SigninForm = () => {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -71,7 +67,7 @@ export function SigninForm({ notice }: SigninFormProps) {
       noValidate
       className="space-y-6"
     >
-      <FormFeedback error={serverError} notice={notice} />
+      <FormFeedback error={serverError} />
       <FieldGroup>
         <Controller
           name="email"
@@ -137,6 +133,8 @@ export function SigninForm({ notice }: SigninFormProps) {
       </Button>
     </form>
   );
-}
+};
+
+export default SigninForm;
 
 class SessionNotStoredError extends Error {}

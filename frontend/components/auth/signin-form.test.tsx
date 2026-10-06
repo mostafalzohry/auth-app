@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { SigninForm } from "@/components/auth/signin-form";
+import SigninForm from "@/components/auth/signin-form";
 import {
   jsonResponse,
   mockFetch,
@@ -132,13 +132,5 @@ describe("SigninForm", () => {
 
     resolve(jsonResponse(200, { user }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledTimes(1));
-  });
-
-  it("shows the notice that signup passes through the URL", () => {
-    render(<SigninForm notice="Account created. Sign in to continue." />);
-
-    expect(
-      screen.getByText("Account created. Sign in to continue."),
-    ).toBeTruthy();
   });
 });

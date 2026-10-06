@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
-export default function Home() {
+const Home = () => {
   redirect("/signin");
-}
+};
+
+export default Home;

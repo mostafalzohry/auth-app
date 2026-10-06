@@ -1,10 +1,6 @@
-import { AuthBrand } from "@/components/auth/auth-brand";
+import AuthBrand from "@/components/auth/auth-brand";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-2">
       <AuthBrand />
@@ -13,4 +9,6 @@ export default function AuthLayout({
       </main>
     </div>
   );
-}
+};
+
+export default AuthLayout;

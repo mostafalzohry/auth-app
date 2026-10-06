@@ -1,4 +1,5 @@
-import { apiRequest } from "@/lib/api";
+import { ApiError, apiRequest } from "@/lib/api";
+import { isPublicUser } from "@/lib/validation/public-user";
 import type {
   SigninFormValues,
   SignupPayload,
@@ -30,6 +31,13 @@ export function signin(values: SigninFormValues) {
   });
 }
 
-export function getCurrentUser(signal?: AbortSignal) {
-  return apiRequest<UserResponse>("/api/auth/me", { signal });
+export async function getCurrentUser(signal?: AbortSignal) {
+  const data = await apiRequest<unknown>("/api/auth/me", { signal });
+  const user = (data as { user?: unknown } | null)?.user;
+  if (!isPublicUser(user)) throw new ApiError(500, "Unexpected response");
+  return { user };
+}
+
+export function logout() {
+  return apiRequest("/api/auth/logout", { method: "POST" });
 }

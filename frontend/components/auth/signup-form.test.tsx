@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SignupForm } from "@/components/auth/signup-form";
+import SignupForm from "@/components/auth/signup-form";
 import {
   jsonResponse,
   mockFetch,
@@ -95,7 +95,7 @@ describe("SignupForm", () => {
     await fillAndSubmit();
 
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith("/signin?registered=1"),
+      expect(router.push).toHaveBeenCalledWith("/signin"),
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(router.push.mock.calls[0][0]).not.toContain("Sup3r");

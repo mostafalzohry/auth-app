@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import AuthFormShell from "@/components/auth/auth-form-shell";
 import { APP_NAME } from "@/lib/brand";
-import { SignupForm } from "@/components/auth/signup-form";
+import SignupForm from "@/components/auth/signup-form";
 
 export const metadata: Metadata = { title: `Create account · ${APP_NAME}` };
 
-export default function SignupPage() {
+const SignupPage = () => {
   return (
     <AuthFormShell
       title="Create your account"
@@ -26,4 +26,6 @@ export default function SignupPage() {
       <SignupForm />
     </AuthFormShell>
   );
-}
+};
+
+export default SignupPage;

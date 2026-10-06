@@ -9,10 +9,10 @@ interface PasswordInputProps extends React.ComponentProps<"input"> {
   toggleName?: string;
 }
 
-export function PasswordInput({
+const PasswordInput = ({
   toggleName = "password",
   ...props
-}: PasswordInputProps) {
+}: PasswordInputProps) => {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -35,4 +35,6 @@ export function PasswordInput({
       </Button>
     </div>
   );
-}
+};
+
+export default PasswordInput;

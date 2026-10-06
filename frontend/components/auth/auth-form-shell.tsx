@@ -7,12 +7,12 @@ interface AuthFormShellProps {
   footer: ReactNode;
 }
 
-export function AuthFormShell({
+const AuthFormShell = ({
   title,
   description,
   children,
   footer,
-}: AuthFormShellProps) {
+}: AuthFormShellProps) => {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -23,4 +23,6 @@ export function AuthFormShell({
       <p className="text-center text-sm text-muted-foreground">{footer}</p>
     </div>
   );
-}
+};
+
+export default AuthFormShell;

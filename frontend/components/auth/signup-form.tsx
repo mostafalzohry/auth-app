@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoaderCircle } from "lucide-react";
-import { FormFeedback } from "@/components/auth/form-feedback";
-import { PasswordInput } from "@/components/auth/password-input";
+import FormFeedback from "@/components/auth/form-feedback";
+import PasswordInput from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -23,7 +23,7 @@ import {
   type SignupFormValues,
 } from "@/lib/validation/auth-schemas";
 
-export function SignupForm() {
+const SignupForm = () => {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -45,7 +45,7 @@ export function SignupForm() {
       void confirmPassword;
       await signup(payload);
       setDone(true);
-      router.push("/signin?registered=1");
+      router.push("/signin");
     } catch (error) {
       inFlight.current = false;
       setServerError(authErrorMessage(error, "signup"));
@@ -190,4 +190,6 @@ export function SignupForm() {
       </Button>
     </form>
   );
-}
+};
+
+export default SignupForm;

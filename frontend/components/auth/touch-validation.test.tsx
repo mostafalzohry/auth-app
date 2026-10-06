@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { SigninForm } from "@/components/auth/signin-form";
-import { SignupForm } from "@/components/auth/signup-form";
+import SigninForm from "@/components/auth/signin-form";
+import SignupForm from "@/components/auth/signup-form";
 import { mockFetch } from "@/test-utils/fetch-mock";
 
 vi.mock("next/navigation", () => ({

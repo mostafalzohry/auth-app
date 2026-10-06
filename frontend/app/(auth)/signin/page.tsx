@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import AuthFormShell from "@/components/auth/auth-form-shell";
 import { APP_NAME } from "@/lib/brand";
-import { SigninForm } from "@/components/auth/signin-form";
+import SigninForm from "@/components/auth/signin-form";
 
 export const metadata: Metadata = { title: `Sign in · ${APP_NAME}` };
 
-export default async function SigninPage({
-  searchParams,
-}: PageProps<"/signin">) {
-  const { registered } = await searchParams;
-
+const SigninPage = () => {
   return (
     <AuthFormShell
       title="Welcome back"
@@ -27,13 +23,9 @@ export default async function SigninPage({
         </>
       }
     >
-      <SigninForm
-        notice={
-          registered === "1"
-            ? "Your account is ready. Please sign in."
-            : undefined
-        }
-      />
+      <SigninForm />
     </AuthFormShell>
   );
-}
+};
+
+export default SigninPage;
