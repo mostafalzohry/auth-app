@@ -3,6 +3,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export const SWAGGER_PATH = 'swagger';
 export const SWAGGER_JSON_PATH = 'swagger-json';
+export const SWAGGER_UI_VERSION = '5.33.0';
+
+const CDN_BASE = `https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_VERSION}`;
+
+export interface SwaggerSetupOptions {
+  cdnAssets?: boolean;
+}
 
 interface SwaggerUiRequest {
   url: string;
@@ -35,7 +42,10 @@ Cookie-based JWT authentication for a browser frontend.
 **Logout** clears the cookie but does not revoke tokens: a copied JWT stays valid until it expires.
 `;
 
-export function configureSwagger(app: NestExpressApplication): void {
+export function configureSwagger(
+  app: NestExpressApplication,
+  options: SwaggerSetupOptions = {},
+): void {
   const config = new DocumentBuilder()
     .setTitle('Auth API')
     .setDescription(DESCRIPTION)
@@ -62,6 +72,13 @@ export function configureSwagger(app: NestExpressApplication): void {
       customSiteTitle: 'Auth API docs',
       customCss:
         '.swagger-ui .scheme-container .auth-wrapper { display: none; }',
+      ...(options.cdnAssets && {
+        customCssUrl: `${CDN_BASE}/swagger-ui.css`,
+        customJs: [
+          `${CDN_BASE}/swagger-ui-bundle.js`,
+          `${CDN_BASE}/swagger-ui-standalone-preset.js`,
+        ],
+      }),
       swaggerOptions: {
         withCredentials: true,
         persistAuthorization: false,

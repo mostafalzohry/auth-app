@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { Logger, Type } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { authRequestInterceptor } from '../src/swagger.setup';
+import {
+  SWAGGER_UI_VERSION,
+  authRequestInterceptor,
+} from '../src/swagger.setup';
 import { InMemoryUserRepository } from './helpers/in-memory-user-repository';
 import {
   CSRF_HEADERS,
@@ -310,6 +314,46 @@ describe('Swagger and OpenAPI (e2e)', () => {
       const res = await request(server()).get('/').expect(200);
 
       expect(res.text).toBe('hi i am mostafa');
+    });
+  });
+
+  describe('Swagger UI assets from a CDN (production)', () => {
+    let cdnApp: NestExpressApplication;
+
+    beforeAll(async () => {
+      cdnApp = await createTestApp(AppModule, new InMemoryUserRepository(), {
+        swagger: { cdnAssets: true },
+      });
+    });
+
+    afterAll(async () => {
+      await cdnApp.close();
+    });
+
+    const base = `https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_VERSION}`;
+
+    it('loads the Swagger UI files from a pinned CDN version', async () => {
+      const page = await request(cdnApp.getHttpServer())
+        .get('/swagger')
+        .expect(200);
+
+      expect(page.text).toContain(`${base}/swagger-ui.css`);
+      expect(page.text).toContain(`${base}/swagger-ui-bundle.js`);
+      expect(page.text).toContain(`${base}/swagger-ui-standalone-preset.js`);
+    });
+
+    it('does not use the CDN unless asked to', async () => {
+      const page = await request(server()).get('/swagger').expect(200);
+
+      expect(page.text).not.toContain('cdn.jsdelivr.net');
+    });
+
+    it('pins the same version as the installed swagger-ui-dist package', () => {
+      const installed = JSON.parse(
+        readFileSync(require.resolve('swagger-ui-dist/package.json'), 'utf8'),
+      ).version;
+
+      expect(SWAGGER_UI_VERSION).toBe(installed);
     });
   });
 

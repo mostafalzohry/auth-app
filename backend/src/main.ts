@@ -12,8 +12,11 @@ async function bootstrap() {
     logger: new SanitizedLogger(),
   });
   configureApp(app);
-  configureSwagger(app);
-  const port = app.get(ConfigService).getOrThrow<number>('PORT');
+  const config = app.get(ConfigService);
+  configureSwagger(app, {
+    cdnAssets: config.getOrThrow<string>('NODE_ENV') === 'production',
+  });
+  const port = config.getOrThrow<number>('PORT');
   await app.listen(port);
 }
 

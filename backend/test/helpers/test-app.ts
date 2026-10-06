@@ -70,7 +70,7 @@ export interface TestAppOptions {
   production?: boolean;
   trustProxyHops?: number;
   rateLimitModel?: InMemoryRateLimitModel;
-  swagger?: boolean;
+  swagger?: boolean | { cdnAssets?: boolean };
 }
 
 export async function createTestApp(
@@ -98,7 +98,9 @@ export async function createTestApp(
     production: options.production,
     trustProxyHops: options.trustProxyHops ?? 0,
   });
-  if (options.swagger) configureSwagger(app);
+  if (options.swagger) {
+    configureSwagger(app, options.swagger === true ? {} : options.swagger);
+  }
   await app.init();
   return app;
 }
