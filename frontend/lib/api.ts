@@ -12,6 +12,7 @@ export class ApiError extends Error {
 interface ApiRequestOptions {
   method?: "GET" | "POST";
   body?: unknown;
+  signal?: AbortSignal;
 }
 
 function errorMessage(body: unknown, fallback: string): string {
@@ -22,17 +23,25 @@ function errorMessage(body: unknown, fallback: string): string {
 
 export async function apiRequest<T = void>(
   path: string,
-  { method = "GET", body }: ApiRequestOptions = {},
+  { method = "GET", body, signal }: ApiRequestOptions = {},
 ): Promise<T> {
-  const response = await fetch(path, {
-    method,
-    credentials: "same-origin",
-    headers: {
-      "X-Auth-Request": "1",
-      ...(body !== undefined && { "Content-Type": "application/json" }),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method,
+      credentials: "include",
+      cache: "no-store",
+      signal,
+      headers: {
+        "X-Auth-Request": "1",
+        ...(body !== undefined && { "Content-Type": "application/json" }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new ApiError(0, "Network error");
+  }
 
   if (response.status === 204) return undefined as T;
   const data: unknown = await response.json().catch(() => null);
@@ -41,7 +50,7 @@ export async function apiRequest<T = void>(
     const retryAfter = Number(response.headers.get("Retry-After"));
     throw new ApiError(
       response.status,
-      errorMessage(data, "Something went wrong. Please try again."),
+      errorMessage(data, "Request failed"),
       Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
     );
   }

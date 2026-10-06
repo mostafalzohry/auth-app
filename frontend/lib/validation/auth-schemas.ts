@@ -27,6 +27,10 @@ export const signupSchema = yup.object({
       /[^\p{L}\p{N}\s]/u,
       "Password must contain at least one special character",
     ),
+  confirmPassword: yup
+    .string()
+    .required("Please repeat your password")
+    .oneOf([yup.ref("password")], "Passwords do not match"),
 });
 
 export const signinSchema = yup.object({
@@ -38,4 +42,5 @@ export const signinSchema = yup.object({
 });
 
 export type SignupFormValues = yup.InferType<typeof signupSchema>;
+export type SignupPayload = Omit<SignupFormValues, "confirmPassword">;
 export type SigninFormValues = yup.InferType<typeof signinSchema>;

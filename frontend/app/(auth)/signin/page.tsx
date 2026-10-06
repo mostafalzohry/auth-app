@@ -1,19 +1,39 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthCard } from "@/components/auth/auth-card";
+import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import { APP_NAME } from "@/lib/brand";
+import { SigninForm } from "@/components/auth/signin-form";
 
-export default function SigninPage() {
+export const metadata: Metadata = { title: `Sign in · ${APP_NAME}` };
+
+export default async function SigninPage({
+  searchParams,
+}: PageProps<"/signin">) {
+  const { registered } = await searchParams;
+
   return (
-    <AuthCard
-      title="Sign in"
-      description="Enter your email and password."
+    <AuthFormShell
+      title="Welcome back"
+      description="Sign in to pick up where you left off."
       footer={
-        <p className="text-sm text-muted-foreground">
-          No account yet?{" "}
-          <Link href="/signup" className="underline underline-offset-4">
-            Sign up
+        <>
+          New here?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Create one
           </Link>
-        </p>
+        </>
       }
-    />
+    >
+      <SigninForm
+        notice={
+          registered === "1"
+            ? "Your account is ready. Please sign in."
+            : undefined
+        }
+      />
+    </AuthFormShell>
   );
 }

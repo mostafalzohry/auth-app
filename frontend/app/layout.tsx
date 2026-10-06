@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { APP_NAME } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auth App",
-  description: "Sign up and sign in to the application.",
+  title: APP_NAME,
+  description: "Create an account or sign in.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

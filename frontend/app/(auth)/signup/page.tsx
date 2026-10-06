@@ -1,19 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthCard } from "@/components/auth/auth-card";
+import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import { APP_NAME } from "@/lib/brand";
+import { SignupForm } from "@/components/auth/signup-form";
+
+export const metadata: Metadata = { title: `Create account · ${APP_NAME}` };
 
 export default function SignupPage() {
   return (
-    <AuthCard
-      title="Create an account"
-      description="Enter your name, email and a password."
+    <AuthFormShell
+      title="Create your account"
+      description="It only takes a minute."
       footer={
-        <p className="text-sm text-muted-foreground">
-          Already registered?{" "}
-          <Link href="/signin" className="underline underline-offset-4">
+        <>
+          Already have an account?{" "}
+          <Link
+            href="/signin"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
             Sign in
           </Link>
-        </p>
+        </>
       }
-    />
+    >
+      <SignupForm />
+    </AuthFormShell>
   );
 }
